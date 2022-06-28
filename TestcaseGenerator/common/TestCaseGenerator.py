@@ -1,6 +1,7 @@
 from operator import mod
 import re
 import csv
+import copy
 
 value_pattern = '\[[\S]+\]' #值提取正则式
 
@@ -54,7 +55,7 @@ def load_test_dot(file_path:str):
             pass
         #非上述文本，标记该模块已录入完毕，如新的模块名
         elif 'test_case_sign'in test_dot_sign and test_dot_sign['test_case_sign']!=None:
-            test_dot_parts.append(test_dot_sign.copy())
+            test_dot_parts.append(copy.deepcopy(test_dot_sign))
             test_dot_sign['main_success_list']=[]
             test_dot_sign['extend_list']=[]
             test_dot_sign['constraint_list']=[]
@@ -152,7 +153,7 @@ def gen_testcases(test_dot_parts:list,file_path:str):
             if 'constraint_list' in test_dot and len(test_dot['constraint_list']):
                 #存在扩展文本
                 if str(testcase[1]).find("和")>=0:
-                    writer.writerow(testcase.copy())
+                    writer.writerow(copy.deepcopy(testcase))
                     testcase[1]=str.format('{}的约束条件',test_dot['function_base_name']) #标题
                     testcase[3]="" #步骤
                     testcase[4]="" #预期
@@ -173,4 +174,4 @@ def gen_testcases(test_dot_parts:list,file_path:str):
                             testcase[3] = str.format('{}\n{}. {}',testcase[3],index,step_results[0])
                             testcase[4] = str.format('{}\n{}. {}',testcase[4],index,step_results[1])
 
-            writer.writerow(testcase.copy())
+            writer.writerow(copy.deepcopy(testcase))
