@@ -4,23 +4,6 @@ import csv
 import copy
 from typing import List
 
-# value_pattern = '\[[\S]+\]' #值提取正则式
-
-# module_name_pattern = '^# [^#]+\[\/[^#]+\(#[0-9]+\)\]$' #模块名正则式
-
-# functional_test_pattern = '^## 功能测试$'
-# ui_test_pattern = '^## UI测试$'
-
-# requiredment_pattern = '^### [^#]+\[[^#]+\(#[0-9]+\)\]$' #研发需求匹配模块
-
-# pre_step_pattern = '^- 前置条件$'
-# main_success_pattern = '^- 主成功场景$'
-# extend_pattern = '^- 扩展$'
-# constraint_pattern = '^- 约束条件$'
-
-# tesecase_pattern = '^- [\S]+:[\S]*$' #测试用例正则式
-# constraint_key_pattern = '^- \[[\S]+\]$' #约束条件名
-
 class TestDot(object):
     '''
     功能测试模块的数据结构
