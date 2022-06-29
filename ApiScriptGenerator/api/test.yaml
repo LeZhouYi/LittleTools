@@ -1,0 +1,84 @@
+openapi: 3.0.0
+info:
+  title: TEST
+  version: 1.0.0
+  description: >
+    common response:
+      - '200':
+      - '201'
+        description: OK
+      - '400':
+        description: Bad request.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error_code:
+                  type: string
+                error_msg:
+                  type: string
+      - '401':
+        description: Authorization information is missing or invalid.
+      - '404':
+        description: record not found
+      - '5XX':
+        description: Unexpected error
+  contact: {}
+servers:
+  - url: "TEST"
+    description: dev
+  - url: "TEST"
+    description: local
+tags:
+  - name: Security
+    description: 安全
+  - name: User
+    description: 用户
+  - name: Program
+    description: 课程
+  - name: Order
+    description: 订单
+  - name: Report
+    description: 报告
+paths:
+  /sessions:
+    post:
+      tags:
+        - Security
+      summary: login by password
+      description: login by password
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_no:
+                  type: string
+                  example: TEST
+                password:
+                  type: string
+                  example: TEST
+                device_id:
+                  type: string
+      responses:
+        "201":
+          description: logined session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/session"
+        "400":
+          description: bad request
+          content:
+            application/json:
+              examples:
+                INVALID_USERNAME_PASSWORD:
+                  summary: "Invalid username password"
+                  value:
+                    error_code: "INVALID_USERNAME_PASSWORD"
+                    error_msg: "username password does not match"
+security:
+  - bearerAuth: []
