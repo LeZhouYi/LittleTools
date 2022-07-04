@@ -1,13 +1,11 @@
-from operator import mod
 import re
-import csv
 import copy
 from typing import List
+from TestCase import TestCase
 
 class TestDot(object):
-    '''
-    功能测试模块的数据结构
-    '''
+    '''功能测试模块的数据结构'''
+
     value_pattern = '\[[\S]+\]' #值提取正则式
     sign_type = ['constraint','extend','main','pre_step']#代表约束条件，扩展，主成功，前置条件
     header_list = ["所属模块","用例标题","前置条件","步骤","预期","关键词","优先级","用例类型","适用阶段","相关研发需求"]
@@ -24,6 +22,18 @@ class TestDot(object):
         self.is_functional = True #是否是功能测试
         self.requirement = "" #存储研发需求
         self.function_module = "" #存储功能模块名
+
+    def has_mains(self)->bool:
+        '''是否存在主成功'''
+        return len(self.mains)>0
+
+    def has_constraints(self)->bool:
+        '''是否存在约束'''
+        return len(self.constraints)>0
+
+    def has_extends(self)->bool:
+        '''是否存在扩展'''
+        return len(self.extends)>0
 
     def is_pre_step(line:str)->bool:
         '''
@@ -158,7 +168,7 @@ class TestDot(object):
         self.extends = []
         self.pre_steps = []
 
-    def load_test_dots(file_path:str):
+    def load_test_dots(file_path:str)->list:
         '''
         载入测试功能点,并规整为合适的数据格式
         '''
@@ -212,6 +222,60 @@ class TestDot(object):
         print(test_dots)
         return test_dots
 
+    def get_yaml_dict(self)->dict:
+        '''
+        返回用于生成Yaml的字典
+        '''
+        return {
+            "sign":self.sign,
+            "constraints": self.constraints,
+            "mains": self.mains,
+            "extends": self.extends,
+            "pre_steps": self.pre_steps,
+            "module": self.module,
+            "is_functional": self.is_functional,
+            "requirement": self.requirement,
+            "function_module": self.function_module
+        }
+
+    def load_by_yaml_dict(self,yaml_dict:dict)->None:
+        '''
+        解析从yaml中读取出来的数据并存入对应变量
+        '''
+        self.sign = yaml_dict['sign']
+        self.constraints = yaml_dict['constraints']
+        self.mains = yaml_dict['mains']
+        self.extends = yaml_dict['extends']
+        self.pre_steps = yaml_dict['pre_steps']
+        self.module = yaml_dict['module']
+        self.is_functional = yaml_dict['is_functional']
+        self.requirement = yaml_dict['requirement']
+        self.function_module = yaml_dict['function_module']
+
+    def get_constraints(self)->List[dict]:
+        '''
+        获取约束条件
+        '''
+        return self.constraints
+
+    def get_extends(self)->List[str]:
+        '''获取扩展'''
+        return self.extends
+
+    def get_mains(self)->List[str]:
+        '''获取主成功场景'''
+        return self.mains
+
+    def get_mains_name(self)->str:
+        '''获取主成功场景的用例名'''
+        return self.get_mains()[0].split(":")[0].strip()
+
+    def get_function_module(self)->str:
+        '''
+        获取功能模块名
+        '''
+        return self.function_module
+
     def get_csv_headers()->List[str]:
         '''
         返回CSV标头
@@ -223,71 +287,56 @@ class TestDot(object):
         转换成CSV所需格式
         '''
         csv_lines = []
-        line = [None for i in range(len(self.header_list))]
-        line[0] = self.module #所属模块
-        line[9] = self.requirement #相关研发需求
-        line[5] = self.function_module #关键字
-        line[6] = str(3) #优先级
-        line[7] = self.type_value[0] #用例类型
-        line[8] = self.stage_value[1] #适用阶段
+        testcase = TestCase()
+
+        testcase.set_module(self.module) #所属模块
+        testcase.set_requirement(self.requirement) #相关研发需求
+        testcase.set_testcase_key(self.function_module) #关键字
+        testcase.set_priority(3) #优先级
+        testcase.set_type(self.type_value[0]) #用例类型
+        testcase.set_stage(self.stage_value[1]) #适用阶段
 
         #录入前置步骤文本
         for index in range(len(self.pre_steps)):
-            step = self.pre_steps[index]
-            line[2] = str.format("{}. {}\n",index+1,str(step)[:-1])#用例前置条件
+            step = str(self.pre_steps[index])[:-1]
+            testcase.set_pre_step(index+1,step)#用例前置条件
 
         #录入主成功场景文本，若存在扩展文本，则后续录入扩展文本
         if len(self.mains)>0:
-            line[1]  = str.format('{}的主成功场景',self.function_module) #用例标题
+            testcase.set_name(str.format('{}的主成功场景',self.function_module)) #用例标题
             #录入主成功场景文本
             for i in range(len(self.mains)):
-                main_case = self.mains[i]
-                step_results = str(main_case).split(':')
-                line[3] = str.format('{}. {}',i+1,step_results[0]) #步骤
-                line[4] = str.format('{}. {}',i+1,step_results[1]) #预期
+                step_results = str(self.mains[i]).split(':')
+                testcase.set_step(i+1,step_results[0]) #步骤
+                testcase.set_result(i+1,step_results[1]) #预期
 
             #若存在扩展文本，则录入扩展文本
             if len(self.extends)>0:
-                line[1] = str.format('{}和扩展',line[1])
+                testcase.set_name('和扩展',is_rewrite=False)
                 for i in range(len(self.extends)):
-                    extend_case = self.extends[i]
-                    step_results = str(extend_case).split(':')
-                    line[3] = str.format('{}\n{}. {}',line[3],i+2,step_results[0]) #步骤
-                    line[4] = str.format('{}\n{}. {}',line[4],i+2,step_results[1]) #预期
+                    step_results = str(self.extends[i]).split(':')
+                    testcase.set_step(i+2,step_results[0]) #步骤
+                    testcase.set_result(i+2,step_results[1]) #预期
 
         #录入约束条件，若不存在扩展文本，则与主成功场景合并。若存在扩展文本，则新起一条用例
         if len(self.constraints)>0:
             #存在扩展文本
-            if str(line[1]).find("和")>=0:
-                csv_lines.append(copy.deepcopy(line))
-                line[1]=str.format('{}的约束条件',self.function_module) #标题
-                line[3]="" #步骤
-                line[4]="" #预期
+            if testcase.is_name_exist("和"):
+                csv_lines.append(testcase.get_csv_line())
+                testcase.set_name(str.format('{}的约束条件',self.function_module)) #标题
+                testcase.reset_step_result()
                 index = 0
             #不存在扩展文本
             else:
                 index = 1
-                line[1]=str.format('{}和约束条件',line[2]) #标题
+                testcase.set_name("和约束条件",is_rewrite=False) #标题
             #录入约束条件文本
             for item in self.constraints:
                 for case in item['cases']:
                     index+=1
                     step_results = str(case).split(':')
-                    if index == 1:
-                        line[3] = str.format('{}{}. {}',line[3],index,step_results[0])
-                        line[4] = str.format('{}{}. {}',line[4],index,step_results[1])
-                    else:
-                        line[3] = str.format('{}\n{}. {}',line[3],index,step_results[0])
-                        line[4] = str.format('{}\n{}. {}',line[4],index,step_results[1])
-            csv_lines.append(copy.deepcopy(line))
+                    testcase.set_step(index,step_results[0]) #步骤
+                    testcase.set_result(index,step_results[1]) #预期
+            csv_lines.append(testcase.get_csv_line())
         print(csv_lines)
         return csv_lines
-
-
-def gen_testcases(test_dots:List[TestDot],file_path:str)->None:
-    '''生成CSV文件格式的测试用例'''
-    with open(file_path,mode='w',encoding='utf-8',newline="") as f:
-        writer = csv.writer(f,quoting=csv.QUOTE_NONNUMERIC)
-        writer.writerow(TestDot.header_list)
-        for test_dot in test_dots:
-            writer.writerows(test_dot.to_csv_lines())
